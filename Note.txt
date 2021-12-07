@@ -1,0 +1,22 @@
+pip install base64,os,time
+
+edit:
+IMC.py - line 264 to IMC server IP
+
+put IMC.py on:
+/usr/lib/python3.6/site-packages/
+
+edit:
+IMC_SN_Connect.ini
+
+put:
+IMC_servcienow.0.txt
+IMC_ServiceNow.py
+IMC_SN_Connect.ini
+
+and move it to ServiceNow Location:
+/ServiceNow/MIDServer/IMC_PROD/IMC
+
+
+Cron Entry:
+*/5 * * * * cd /ServiceNow/MIDServer/IMC_PROD/IMC && /usr/bin/python3.6 IMC_ServiceNow.py
