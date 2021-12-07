@@ -41,13 +41,13 @@ def rename_files():
     if files_exist < 7:
         for i in reversed(files_list):
             file_val = files_exist
-            file_name = "IMC_servcienow." + str(file_val) + ".txt"
+            file_name = "Alletra_servcienow." + str(file_val) + ".txt"
             os.rename(i, file_name)
             files_exist = files_exist - 1
     if files_exist == 7:
         files_exist = files_exist - 1
         file_val = files_exist
-        file_name = "IMC_servcienow.6.txt"
+        file_name = "Alletra_servcienow.6.txt"
         os.remove(file_name)
         files_list1 = []
         once = 0
@@ -60,12 +60,12 @@ def rename_files():
         for j in reversed(files_list1):
             if once == 0:
                 file_val1 = files_exist1
-                file_name1 = "IMC_servcienow." + str(file_val1) + ".txt"
+                file_name1 = "Alletra_servcienow." + str(file_val1) + ".txt"
                 os.rename(j, file_name1)
                 once = 1
             else:
                 file_val1 = files_exist1 - 1
-                file_name1 = "IMC_servcienow." + str(file_val1) + ".txt"
+                file_name1 = "Alletra_servcienow." + str(file_val1) + ".txt"
                 os.rename(j, file_name1)
                 files_exist1 = file_val1
 
@@ -74,16 +74,16 @@ def logger(file_update):
     # writing to the file
     date_time = datetime.datetime.now()
     date_ISO = date_time.isoformat()
-    file_info = os.stat("IMC_servcienow.0.txt")
+    file_info = os.stat("Alletra_servcienow.0.txt")
     file_size = file_info.st_size
     file_mb = file_size / (1024 * 1024)
     if file_mb < 10:
-        with open("IMC_servcienow.0.txt", "a+") as fileobj:
+        with open("Alletra_servcienow.0.txt", "a+") as fileobj:
             file_update = "***********************" + str(date_ISO) + "***********************" + "\n" + file_update
             fileobj.write(file_update)
     else:
         rename_files()
-        with open("IMC_servcienow.0.txt", "a+") as fileobj:
+        with open("Alletra_servcienow.0.txt", "a+") as fileobj:
             file_update = "\n***********************" + str(
                 date_ISO) + "***********************" + "\n" + file_update
             fileobj.write(file_update)
@@ -120,7 +120,7 @@ def CallSN(user, Password, midip, midport, headers, source, devicename, eventtyp
     severity = str(severity)
     urli = "http://" + midip + ":" + midport + "/api/mid/em/inbound_event?Transform=jsonv2"
     payload = {}
-    payload['source'] = "IMC"
+    payload['source'] = "Alletra"
     payload['description'] = description
     payload['type'] = eventtype
     payload['node'] = devicename
@@ -142,8 +142,8 @@ def CallSN(user, Password, midip, midport, headers, source, devicename, eventtyp
         return response, "failed"
 
 
-def getalarm(username, password, operator_name, qtime, imc_protocol, imc_ip, imc_port, SN_user, sn_pass, SN_MIDIP, SN_MIDPort):
-    imc_exit_flag = 0
+def getalarm(username, password, operator_name, qtime, Alletra_protocol, Alletra_ip, Alletra_port, SN_user, sn_pass, SN_MIDIP, SN_MIDPort):
+    Alletra_exit_flag = 0
     newlist = []
     mid_select = 1
     with requests.session() as getsession:
@@ -151,23 +151,23 @@ def getalarm(username, password, operator_name, qtime, imc_protocol, imc_ip, imc
         getsession.auth = HTTPDigestAuth(username, password)
         payload = {}
         header = {'Content-Type': 'application/json'}
-        for each_imc_ip in imc_ip:
-            url = imc_protocol + "://" + imc_ip[each_imc_ip] + ":" + imc_port + "/imcrs"
+        for each_Alletra_ip in Alletra_ip:
+            url = Alletra_protocol + "://" + Alletra_ip[each_Alletra_ip] + ":" + Alletra_port + "/imcrs"
             get_cookie = get(url, getsession, header, payload, 'yes')
             if "failed" not in get_cookie:
-                imc_exit_flag += 1
+                Alletra_exit_flag += 1
                 file_updates = file_updates + "************************************************************************\n"
-                file_updates = file_updates + "Succesfully Established connection to IMC {0} : {1}\n".format(
-                    each_imc_ip, imc_ip[each_imc_ip])
+                file_updates = file_updates + "Succesfully Established connection to Alletra {0} : {1}\n".format(
+                    each_Alletra_ip, Alletra_ip[each_Alletra_ip])
                 break
             elif "failed" in get_cookie:
                 file_updates = file_updates + "************************************************************************\n"
-                file_updates = file_updates + "failed to establish connection to IMC {0} : {1}\n".format(each_imc_ip,
-                                                                                                         imc_ip[
-                                                                                                             each_imc_ip])
+                file_updates = file_updates + "failed to establish connection to Alletra {0} : {1}\n".format(each_Alletra_ip,
+                                                                                                         Alletra_ip[
+                                                                                                             each_Alletra_ip])
                 file_updates = file_updates + "failed to getCookies: " + str(get_cookie[1]) + " " + str(get_cookie[2])
                 file_updates = file_updates + "\n************************************************************************\n"
-        if not imc_exit_flag:
+        if not Alletra_exit_flag:
             logger(file_updates)
             sys.exit(1)
         header_alarm = {'Content-Type': 'application/json', 'Cookie': get_cookie, 'Accept': 'application/json'}
@@ -264,7 +264,7 @@ def getalarm(username, password, operator_name, qtime, imc_protocol, imc_ip, imc
             label = "10.0.135.37"
             eventtype = "script_running"
             description = "Monitor Event"
-            source = "IMC"
+            source = "Alletra"
             if mid_select:
                 get_mid = mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, header, source, label, eventtype,
                                         resource, snseverity, description, file_updates)
