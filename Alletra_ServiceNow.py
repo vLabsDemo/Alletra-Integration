@@ -1,7 +1,7 @@
 import configparser
 import base64
 import time
-import IMC
+import Alletra
 import os
 
 
@@ -54,7 +54,7 @@ def main():
     # print("Epoch", epoch)
     millis = epoch - 360
     print("Run time", millis)
-    IMC.getalarm(IMC_user, IMC_pass, operatorname, str(millis), IMC_Protocol, IMC_dict, IMC_PortNo, SN_user, sn_pass, SN_Mid_dict, SN_MIDPort)
+    Alletra.getalarm(IMC_user, IMC_pass, operatorname, str(millis), IMC_Protocol, IMC_dict, IMC_PortNo, SN_user, sn_pass, SN_Mid_dict, SN_MIDPort)
 
 
 if __name__ == "__main__":
