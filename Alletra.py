@@ -151,22 +151,33 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
     flag = 0
     noOfEvents=0
     mid_select = 1
-    file_updates = ""
-    payload = '{"password": "' + password + '", "userName": "' + username + '", "sessionType": 1}'
-    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-    url = "{0}://{1}/api/v1".format(alletra_protocol,alletra_ip)
-    alletra_login_url = url + "/credentials"
-    # Login and get the cookies
-    # get cookie and store it in file for 5 days
-    try:
-        today = datetime.date.today()
-        today_date = int(today.strftime('%d'))
-        filepath = r'C:\MIDserver\Alletra\getsession'
-        file_created = os.path.getmtime(filepath)
-        creation_time = datetime.datetime.fromtimestamp(file_created)
-        file_cdate = int(creation_time.strftime(('%d')))
-        #print(today_date,file_cdate)
-        if today_date == file_cdate + 5:
+    with requests.session() as getsession:
+        file_updates = ""
+        payload = '{"password": "' + password + '", "userName": "' + username + '", "sessionType": 1}'
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        url = "{0}://{1}/api/v1".format(alletra_protocol,alletra_ip)
+        alletra_login_url = url + "/credentials"
+        # Login and get the cookies
+        # get cookie and store it in file for 5 days
+        try:
+            today = datetime.date.today()
+            today_date = int(today.strftime('%d'))
+            filepath = r'C:\MIDserver\Alletra\getsession'
+            file_created = os.path.getmtime(filepath)
+            creation_time = datetime.datetime.fromtimestamp(file_created)
+            file_cdate = int(creation_time.strftime(('%d')))
+            #print(today_date,file_cdate)
+            if today_date == file_cdate + 5:
+                flag = 1
+                get_sessions = post(alletra_login_url, headers, payload)
+                if "failed" in get_sessions:
+                    file_updates = file_updates + "************************************************************************\n"
+                    file_updates = file_updates + "failed to establish connection to Alletra : {0}\n".format(alletra_ip)
+                    file_updates = file_updates + "failed to Session Key: " + str(get_sessions[1]) + " " + str(get_sessions[2])
+                    file_updates = file_updates + "\n************************************************************************\n"
+                    logger(file_updates)
+                    sys.exit(1)
+        except:
             flag = 1
             get_sessions = post(alletra_login_url, headers, payload)
             if "failed" in get_sessions:
@@ -176,108 +187,98 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
                 file_updates = file_updates + "\n************************************************************************\n"
                 logger(file_updates)
                 sys.exit(1)
-    except:
-        flag = 1
-        get_sessions = post(alletra_login_url, headers, payload)
-        if "failed" in get_sessions:
-            file_updates = file_updates + "************************************************************************\n"
-            file_updates = file_updates + "failed to establish connection to Alletra : {0}\n".format(alletra_ip)
-            file_updates = file_updates + "failed to Session Key: " + str(get_sessions[1]) + " " + str(get_sessions[2])
+        if flag:
+            with open(filepath, 'w+') as file_write:
+                get_session = get_sessions["key"]
+                message_bytes = get_session.encode('ascii')
+                base64_bytes = base64.b64encode(message_bytes)
+                base64_message = base64_bytes.decode('ascii')
+                file_write.write(base64_message)
+        else:
+            with open(filepath) as fileobj:
+                base64_message = fileobj.read()
+                base64_bytes = base64_message.encode('ascii')
+                message_bytes = base64.b64decode(base64_bytes)
+                get_session = message_bytes.decode('ascii')
+        # Construct payload
+        print(get_session)
+        payload_Json = json.dumps(event_payload)
+        event_url = url + "/eventlog/minutes:5"
+        header_alarm = {'Content-Type': 'application/json' , 'x-hp3par-wsapi-sessionkey' : get_session}
+        get_alarm = get(event_url, header_alarm)
+        if "failed" in get_alarm:
+            file_updates = file_updates + "failed to get Events: " + str(get_alarm[1]) + " " + str(get_alarm[2])
             file_updates = file_updates + "\n************************************************************************\n"
             logger(file_updates)
             sys.exit(1)
-    if flag:
-        with open(filepath, 'w+') as file_write:
-            get_session = get_sessions["key"]
-            message_bytes = get_session.encode('ascii')
-            base64_bytes = base64.b64encode(message_bytes)
-            base64_message = base64_bytes.decode('ascii')
-            file_write.write(base64_message)
-    else:
-        with open(filepath) as fileobj:
-            base64_message = fileobj.read()
-            base64_bytes = base64_message.encode('ascii')
-            message_bytes = base64.b64decode(base64_bytes)
-            get_session = message_bytes.decode('ascii')
-    # Construct payload
-    print(get_session)
-    payload_Json = json.dumps(event_payload)
-    event_url = url + "/eventlog/minutes:5"
-    header_alarm = {'Content-Type': 'application/json' , 'x-hp3par-wsapi-sessionkey' : get_session}
-    get_alarm = get(event_url, header_alarm)
-    if "failed" in get_alarm:
-        file_updates = file_updates + "failed to get Events: " + str(get_alarm[1]) + " " + str(get_alarm[2])
-        file_updates = file_updates + "\n************************************************************************\n"
-        logger(file_updates)
-        sys.exit(1)
-    try:
-        get_events = get_alarm['members']
-        noOfEvents = len(get_alarm['members'])
-    except:
-        event_flag = 0
-    print("noOfEvents", noOfEvents)
-    #print("get_events", get_events)
-    if event_flag:
-        def severity(psm_severity):
-            switcher={
-                1:'1',
-                2:'1',
-                3:'2',
-                4:'3',
-                5:'4',
-            }
-            return switcher.get(psm_severity,'7')    
-        for each_event in get_events:
-            desc = each_event['description']
-            #componenetData = each_event['component']
-            #componenetidData = each_event['componentid']
-            #resource = componenetData + ' ' +componenetidData
-            resource = each_event['components']
-            eventtype = each_event['type']
-            
-            if "componentName" in each_event:
-                label = each_event['componentName']
-            else:
-                label = str(alletra_ip)
+        try:
+            get_events = get_alarm['members']
+            noOfEvents = len(get_alarm['members'])
+        except:
+            event_flag = 0
+        print("noOfEvents", noOfEvents)
+        #print("get_events", get_events)
+        if event_flag:
+            def severity(psm_severity):
+                switcher={
+                    1:'1',
+                    2:'1',
+                    3:'2',
+                    4:'3',
+                    5:'4',
+                }
+                return switcher.get(psm_severity,'7')    
+            for each_event in get_events:
+                desc = each_event['description']
+                #componenetData = each_event['component']
+                #componenetidData = each_event['componentid']
+                #resource = componenetData + ' ' +componenetidData
+                resource = each_event['components']
+                eventtype = each_event['type']
+                
+                if "componentName" in each_event:
+                    label = each_event['componentName']
+                else:
+                    label = str(alletra_ip)
 
-            psm_severity = each_event['severity']
-            snseverity = severity(psm_severity)
+                psm_severity = each_event['severity']
+                snseverity = severity(psm_severity)
 
-            file_updates = file_updates + "************************************************************************\n"
+                file_updates = file_updates + "************************************************************************\n"
+                file_updates = file_updates + "RunTime: " + date_time + "\n"
+                file_updates = file_updates + "EventType: " + eventtype + "\n"
+                file_updates = file_updates + "Severity: " + psm_severity + "\n"
+                file_updates = file_updates + "SNOWSeverity: " + snseverity + "\n"
+                file_updates = file_updates + "NodeLabel: " + label + "\n"
+                description = "EventType = "+ eventtype + "\nLabel = " + label + "\nResource= " + resource + "\nmessage = " + desc
+                file_updates = file_updates + "Description: " + desc + "\n"
+                file_updates = file_updates + "Resource: " + resource + "\n"
+                file_updates = file_updates + "************************************************************************\n"
+                # mid server selection
+                if mid_select:
+                    get_mid = mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, headers, label, eventtype, description, resource, snseverity, file_updates)
+                    mid_select = 0
+                    file_updates = get_mid[1]
+                    #print("mid", get_mid[0])
+                else:
+                    sncall = CallSN(SN_user, sn_pass, get_mid[0], SN_MIDPort, headers, label, eventtype, description, resource, snseverity)
+                    File_up = "exit code " + str(sncall[0]) + "\n"
+                    file_updates = file_updates + File_up
+                    file_updates = file_updates + "Event - Node " + label + "\n"
+                    file_updates = file_updates + "************************************************************************\n"
+            logger(file_updates)
+        else:
             file_updates = file_updates + "RunTime: " + date_time + "\n"
-            file_updates = file_updates + "EventType: " + eventtype + "\n"
-            file_updates = file_updates + "Severity: " + psm_severity + "\n"
-            file_updates = file_updates + "SNOWSeverity: " + snseverity + "\n"
-            file_updates = file_updates + "NodeLabel: " + label + "\n"
-            description = "EventType = "+ eventtype + "\nLabel = " + label + "\nResource= " + resource + "\nmessage = " + desc
-            file_updates = file_updates + "Description: " + desc + "\n"
-            file_updates = file_updates + "Resource: " + resource + "\n"
-            file_updates = file_updates + "************************************************************************\n"
+            file_updates = file_updates + "No events in current check\nSending the Clear Event to Service now\n"
             # mid server selection
+            snseverity = "0"
+            resource = "system"
+            label = str(alletra_ip)
+            eventtype = "script_running"
+            description = "Monitor Event"
             if mid_select:
                 get_mid = mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, headers, label, eventtype, description, resource, snseverity, file_updates)
                 mid_select = 0
                 file_updates = get_mid[1]
-                #print("mid", get_mid[0])
-            else:
-                sncall = CallSN(SN_user, sn_pass, get_mid[0], SN_MIDPort, headers, label, eventtype, description, resource, snseverity)
-                File_up = "exit code " + str(sncall[0]) + "\n"
-                file_updates = file_updates + File_up
-                file_updates = file_updates + "Event - Node " + label + "\n"
-                file_updates = file_updates + "************************************************************************\n"
-        logger(file_updates)
-    else:
-        file_updates = file_updates + "RunTime: " + date_time + "\n"
-        file_updates = file_updates + "No events in current check\nSending the Clear Event to Service now\n"
-        # mid server selection
-        snseverity = "0"
-        resource = "system"
-        label = str(alletra_ip)
-        eventtype = "script_running"
-        description = "Monitor Event"
-        if mid_select:
-            get_mid = mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, headers, label, eventtype, description, resource, snseverity, file_updates)
-            mid_select = 0
-            file_updates = get_mid[1]
-            # print("mid", get_mid[0])
-        logger(file_updates)
+                # print("mid", get_mid[0])
+            logger(file_updates)
