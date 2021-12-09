@@ -92,3 +92,26 @@ def logger(file_update):
             file_update = "\n***********************" + str(
                 date_ISO) + "***********************" + "\n" + file_update
             fileobj.write(file_update)
+
+def CallSN(user, Password, midip, midport, headers, devicename, eventtype, description, resource, severity):
+    severity = str(severity)
+    urli = "http://" + midip + ":" + midport + "/api/mid/em/inbound_event?Transform=jsonv2"
+    payload = {}
+    payload['source'] = "Alletra"
+    payload['description'] = description
+    payload['type'] = eventtype
+    payload['node'] = devicename
+    payload['severity'] = severity
+    payload['resource'] = resource
+    JSON_data = json.dumps(payload)
+    try:
+        response = requests.post(urli, auth=(user, Password), timeout=10, headers=headers, data="{\"records\":[" + JSON_data + "]}")
+        if response.status_code == 200:
+            result = response.status_code
+            return result, "success"
+        else:
+            result = response.status_code
+            return result, "failed"
+    except:
+        response = "Exception Occured in event Processing"
+        return response, "failed"
