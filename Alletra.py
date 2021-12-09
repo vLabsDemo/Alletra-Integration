@@ -153,7 +153,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
     mid_select = 1
     with requests.session() as getsession:
         file_updates = ""
-        payload = '{"password": "' + password + '", "userName": "' + username + '", "sessionType": 1}'
+        payload = '{"password": "' + password + '", "user": "' + username + '", "sessionType": 1}'
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         url = "{0}://{1}/api/v1".format(alletra_protocol,alletra_ip)
         alletra_login_url = url + "/credentials"
@@ -172,6 +172,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
                 get_sessions = post(alletra_login_url, headers, payload)
                 if "failed" in get_sessions:
                     file_updates = file_updates + "************************************************************************\n"
+                    file_updates = file_updates + "Session Found URL: {0}, Head: {1}, Body: {2}\n".format(alletra_login_url,headers,payload)
                     file_updates = file_updates + "failed to establish connection to Alletra : {0}\n".format(alletra_ip)
                     file_updates = file_updates + "failed to Session Key: " + str(get_sessions[1]) + " " + str(get_sessions[2])
                     file_updates = file_updates + "\n************************************************************************\n"
@@ -182,6 +183,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
             get_sessions = post(alletra_login_url, headers, payload)
             if "failed" in get_sessions:
                 file_updates = file_updates + "************************************************************************\n"
+                file_updates = file_updates + "Session Not Found URL: {0}, Head: {1}, Body: {2}\n".format(alletra_login_url,headers,payload)
                 file_updates = file_updates + "failed to establish connection to Alletra : {0}\n".format(alletra_ip)
                 file_updates = file_updates + "failed to Session Key: " + str(get_sessions[1]) + " " + str(get_sessions[2])
                 file_updates = file_updates + "\n************************************************************************\n"
