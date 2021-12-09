@@ -205,7 +205,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
         # Construct payload
         print(get_session)
         payload_Json = json.dumps(event_payload)
-        event_url = url + "/eventlog/minutes:5"
+        event_url = url + "/eventlog/minutes:15"
         header_alarm = {'Content-Type': 'application/json' , 'x-hp3par-wsapi-sessionkey' : get_session}
         get_alarm = get(event_url, header_alarm)
         if "failed" in get_alarm:
@@ -229,7 +229,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
                     4:'3',
                     5:'4',
                 }
-                return switcher.get(psm_severity,'7')    
+                return switcher.get(psm_severity,'5')    
             for each_event in get_events:
                 desc = each_event['description']
                 #componenetData = each_event['component']
@@ -249,7 +249,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
                 file_updates = file_updates + "************************************************************************\n"
                 file_updates = file_updates + "RunTime: " + date_time + "\n"
                 file_updates = file_updates + "EventType: " + eventtype + "\n"
-                file_updates = file_updates + "Severity: " + psm_severity + "\n"
+                file_updates = file_updates + "Severity: " + str(psm_severity) + "\n"
                 file_updates = file_updates + "SNOWSeverity: " + snseverity + "\n"
                 file_updates = file_updates + "NodeLabel: " + label + "\n"
                 description = "EventType = "+ eventtype + "\nLabel = " + label + "\nResource= " + resource + "\nmessage = " + desc
