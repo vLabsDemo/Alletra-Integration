@@ -5,6 +5,7 @@ import base64
 import sys
 import json
 import datetime
+import time
 import os
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -105,6 +106,7 @@ def CallSN(user, Password, midip, midport, headers, devicename, eventtype, descr
     payload['resource'] = resource
     JSON_data = json.dumps(payload)
     try:
+        time.sleep(2)
         response = requests.post(urli, auth=(user, Password), timeout=10, headers=headers, data="{\"records\":[" + JSON_data + "]}")
         if response.status_code == 200:
             result = response.status_code
@@ -224,7 +226,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
                 4:'3',
                 5:'4',
             }
-            return switcher.get(psm_severity,'5')    
+            return switcher.get(psm_severity,'7')    
         for each_event in get_events:
             desc = each_event['description']
             #componenetData = each_event['component']
