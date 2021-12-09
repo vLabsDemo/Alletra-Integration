@@ -18,7 +18,7 @@ def post(base_url, headers, payload):
             getSessionJ = response.json()
             return getSessionJ
         else:
-            return "failed", response.status_code, response.cookies
+            return "failed", response.status_code, response.json()
     except Exception as e:
         return "failed", e, "postrequest"
 
@@ -29,7 +29,7 @@ def get(base_url, headers):
             getEventJ = response.json()
             return getEventJ
         else:
-            return "failed", response.status_code, response.cookies
+            return "failed", response.status_code, response.json()
     except Exception as e:
         return "failed", e, "getrequest"
 
