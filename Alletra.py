@@ -115,3 +115,29 @@ def CallSN(user, Password, midip, midport, headers, devicename, eventtype, descr
     except:
         response = "Exception Occured in event Processing"
         return response, "failed"
+
+def mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, header, devicename, eventtype, description, resource, severity, file_updates):
+    mid_exit_flag = 0
+    mid_server = 0
+    for each_mid_ip in SN_MIDIP:
+        get_mid_status = CallSN(SN_user, sn_pass, SN_MIDIP[each_mid_ip], SN_MIDPort, header, devicename, eventtype, description, resource, severity)
+        if "failed" not in get_mid_status:
+            mid_exit_flag = 1
+            mid_server = SN_MIDIP[each_mid_ip]
+            file_updates = file_updates + "************************************************************************\n"
+            file_updates = file_updates + "Succesfully Established connection to MID Server{0} : {1}\n".format(each_mid_ip, SN_MIDIP[each_mid_ip])
+            file_updates = file_updates + "************************************************************************\n"
+            File_up = "exit code " + str(get_mid_status[0]) + "\n" + "Event - Node " + devicename
+            file_updates = file_updates + File_up + "\n"
+            file_updates = file_updates + "************************************************************************\n"
+            break
+        elif "failed" in get_mid_status:
+            file_updates = file_updates + "************************************************************************\n"
+            file_updates = file_updates + "failed to establish connection to MID Server{0} : {1}\n".format(each_mid_ip, SN_MIDIP[each_mid_ip])
+            file_updates = file_updates + "Error: " + str(get_mid_status[0])
+            file_updates = file_updates + "\n************************************************************************\n"
+    if not mid_exit_flag:
+        logger(file_updates)
+        sys.exit(1)
+    else:
+        return mid_server, file_updates
