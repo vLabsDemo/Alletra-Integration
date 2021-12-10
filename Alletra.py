@@ -94,7 +94,7 @@ def logger(file_update):
                 date_ISO) + "***********************" + "\n" + file_update
             fileobj.write(file_update)
 
-def CallSN(user, Password, midip, midport, headers, devicename, eventtype, description, resource, severity):
+def CallSN(user, Password, midip, midport, headers, devicename, eventtype, description, resource, severity, additional_info):
     #severity = str(severity)
     urli = "http://" + midip + ":" + midport + "/api/mid/em/inbound_event?Transform=jsonv2"
     payload = {}
@@ -104,9 +104,10 @@ def CallSN(user, Password, midip, midport, headers, devicename, eventtype, descr
     payload['node'] = devicename
     payload['severity'] = severity
     payload['resource'] = resource
+    payload['additional_info'] = additional_info
     JSON_data = json.dumps(payload)
     try:
-        time.sleep(2)
+        #time.sleep(2)
         response = requests.post(urli, auth=(user, Password), timeout=10, headers=headers, data="{\"records\":[" + JSON_data + "]}")
         if response.status_code == 200:
             result = response.status_code
@@ -118,11 +119,11 @@ def CallSN(user, Password, midip, midport, headers, devicename, eventtype, descr
         response = "Exception Occured in event Processing"
         return response, "failed"
 
-def mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, header, devicename, eventtype, description, resource, severity, file_updates):
+def mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, header, devicename, eventtype, description, resource, severity, file_updates, additional_info):
     mid_exit_flag = 0
     mid_server = 0
     for each_mid_ip in SN_MIDIP:
-        get_mid_status = CallSN(SN_user, sn_pass, SN_MIDIP[each_mid_ip], SN_MIDPort, header, devicename, eventtype, description, resource, severity)
+        get_mid_status = CallSN(SN_user, sn_pass, SN_MIDIP[each_mid_ip], SN_MIDPort, header, devicename, eventtype, description, resource, severity, additional_info)
         if "failed" not in get_mid_status:
             mid_exit_flag = 1
             mid_server = SN_MIDIP[each_mid_ip]
@@ -245,6 +246,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
 
                 psm_severity = each_event['severity']
                 snseverity = severity(psm_severity)
+                additional_info = '{\\"Alletra_Payload\\":[' +str(each_event).replace('\'','\\"')+ ']}'
 
                 file_updates = file_updates + "************************************************************************\n"
                 file_updates = file_updates + "RunTime: " + date_time + "\n"
@@ -258,12 +260,12 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
                 file_updates = file_updates + "************************************************************************\n"
                 # mid server selection
                 if mid_select:
-                    get_mid = mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, headers, label, eventtype, description, resource, snseverity, file_updates)
+                    get_mid = mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, headers, label, eventtype, description, resource, snseverity, file_updates, additional_info)
                     mid_select = 0
                     file_updates = get_mid[1]
                     #print("mid", get_mid[0])
                 else:
-                    sncall = CallSN(SN_user, sn_pass, get_mid[0], SN_MIDPort, headers, label, eventtype, description, resource, snseverity)
+                    sncall = CallSN(SN_user, sn_pass, get_mid[0], SN_MIDPort, headers, label, eventtype, description, resource, snseverity, additional_info)
                     File_up = "exit code " + str(sncall[0]) + "\n"
                     file_updates = file_updates + File_up
                     file_updates = file_updates + "Event - Node " + label + "\n"
@@ -278,8 +280,9 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
             label = str(alletra_ip)
             eventtype = "script_running"
             description = "Monitor Event"
+            additional_info = ""
             if mid_select:
-                get_mid = mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, headers, label, eventtype, description, resource, snseverity, file_updates)
+                get_mid = mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, headers, label, eventtype, description, resource, snseverity, file_updates, additional_info)
                 mid_select = 0
                 file_updates = get_mid[1]
                 # print("mid", get_mid[0])
