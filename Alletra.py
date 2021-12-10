@@ -144,7 +144,7 @@ def mid_selection(SN_user, sn_pass, SN_MIDIP, SN_MIDPort, header, devicename, ev
     else:
         return mid_server, file_updates
 
-def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_user, sn_pass, SN_MIDIP, SN_MIDPort):
+def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletra_LookbackTime, SN_user, sn_pass, SN_MIDIP, SN_MIDPort):
 
     event_flag = 1
     event_payload = {}
@@ -205,7 +205,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, SN_use
         # Construct payload
         print(get_session)
         payload_Json = json.dumps(event_payload)
-        event_url = url + "/eventlog/minutes:15"
+        event_url = url + "/eventlog/minutes:" +str(Alletra_LookbackTime)
         header_alarm = {'Content-Type': 'application/json' , 'x-hp3par-wsapi-sessionkey' : get_session}
         get_alarm = get(event_url, header_alarm)
         if "failed" in get_alarm:

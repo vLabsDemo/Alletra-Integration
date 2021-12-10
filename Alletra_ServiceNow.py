@@ -26,6 +26,7 @@ def main():
         Alletra_user = Config[Midserver]['Alletra_user']
         Alletra_Password = Config[Midserver]['Alletra_Password']
         Alletra_Protocol = Config[Midserver]['Alletra_Protocol']
+        Alletra_LookbackTime = Config[Midserver]['Alletra_Lookback']
 
     sn_passv = SN_Password.encode()
     Pensando_passv = Alletra_Password.encode()
@@ -44,7 +45,7 @@ def main():
     now_minus_7 = now - datetime.timedelta(minutes=7)
     start_time = now_minus_7.isoformat() + "Z"
     #print(start_time)
-    Alletra.getalarm(Alletra_user, Pensando_pass, str(start_time), Alletra_Protocol, Alletra_Primary_IP, SN_user, sn_pass, SN_Mid_dict, SN_MIDPort)
+    Alletra.getalarm(Alletra_user, Pensando_pass, str(start_time), Alletra_Protocol, Alletra_Primary_IP, Alletra_LookbackTime, SN_user, sn_pass, SN_Mid_dict, SN_MIDPort)
 
 
 if __name__ == "__main__":
