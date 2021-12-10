@@ -107,7 +107,7 @@ def CallSN(user, Password, midip, midport, headers, devicename, eventtype, descr
     payload['additional_info'] = additional_info
     JSON_data = json.dumps(payload)
     try:
-        #time.sleep(2)
+        time.sleep(1)
         response = requests.post(urli, auth=(user, Password), timeout=10, headers=headers, data="{\"records\":[" + JSON_data + "]}")
         if response.status_code == 200:
             result = response.status_code
@@ -217,6 +217,8 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
         try:
             get_events = get_alarm['members']
             noOfEvents = len(get_alarm['members'])
+            if noOfEvents == 0:
+                event_flag = 0
         except:
             event_flag = 0
         print("noOfEvents", noOfEvents)
@@ -246,7 +248,11 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
 
                 psm_severity = each_event['severity']
                 snseverity = severity(psm_severity)
-                additional_info = '{\\"Alletra_Payload\\":[' +str(each_event).replace('\'','\\"')+ ']}'
+                #additional_info = '{\\"Alletra_Payload\\":[' +str(each_event).replace('\'','\\"')+ ']}'
+                #additional_info = '{"Alletra_Payload":[' +str(each_event)+ ']}'
+                #additional_info = ""
+                additional_info = str(each_event).replace("'","\\'")
+                #additional_info = str(json.dumps(each_event)).replace('"','\\"')
 
                 file_updates = file_updates + "************************************************************************\n"
                 file_updates = file_updates + "RunTime: " + date_time + "\n"
@@ -254,6 +260,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
                 file_updates = file_updates + "Severity: " + str(psm_severity) + "\n"
                 file_updates = file_updates + "SNOWSeverity: " + snseverity + "\n"
                 file_updates = file_updates + "NodeLabel: " + label + "\n"
+                file_updates = file_updates + "Additional Info: " + str(additional_info) + "\n"
                 description = "EventType = "+ eventtype + "\nLabel = " + label + "\nResource= " + resource + "\nmessage = " + desc
                 file_updates = file_updates + "Description: " + desc + "\n"
                 file_updates = file_updates + "Resource: " + resource + "\n"
