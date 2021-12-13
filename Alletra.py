@@ -28,6 +28,8 @@ def get(base_url, headers):
         if response.ok and response.status_code == 200:
             getEventJ = response.json()
             return getEventJ
+        elif response.status_code == 403:
+            return "InValid Session Key", response.status_code, response.json() 
         else:
             return "failed", response.status_code, response.json()
     except Exception as e:
@@ -160,16 +162,19 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
         alletra_login_url = url + "/credentials"
         # Login and get the cookies
         # get cookie and store it in file for 5 days
-        try:
-            today = datetime.date.today()
-            today_date = int(today.strftime('%d'))
-            filepath = r'C:\MIDserver\Alletra\getsession'
-            file_created = os.path.getmtime(filepath)
-            creation_time = datetime.datetime.fromtimestamp(file_created)
-            file_cdate = int(creation_time.strftime(('%d')))
-            #print(today_date,file_cdate)
-            if today_date == file_cdate + 5:
-                flag = 1
+        filepath = r'C:\MIDserver\Alletra\getsession.json'
+        if os.path.exists(filepath):
+            #print("Session File Exists")
+            with open(filepath) as fileobj:
+                keyValue = json.load(fileobj)
+                PreviousExecution = keyValue["ExecutionTime"]
+            FileTimeStamp = datetime.datetime.fromtimestamp(float(PreviousExecution))
+            curTime = time.time()
+            diff = (datetime.datetime.fromtimestamp(curTime) - FileTimeStamp).total_seconds() / 60
+            if diff >= 15:
+                #print("Executed After 15 Min, New Session Key Required")
+                file_updates = file_updates + "Executed After 15 Min, New Session Key Required\n"
+                logger(file_updates)
                 get_sessions = post(alletra_login_url, headers, payload)
                 if "failed" in get_sessions:
                     file_updates = file_updates + "************************************************************************\n"
@@ -179,30 +184,45 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
                     file_updates = file_updates + "\n************************************************************************\n"
                     logger(file_updates)
                     sys.exit(1)
-        except:
-            flag = 1
-            get_sessions = post(alletra_login_url, headers, payload)
-            if "failed" in get_sessions:
-                file_updates = file_updates + "************************************************************************\n"
-                file_updates = file_updates + "Session Not Found URL: {0}, Head: {1}, Body: {2}\n".format(alletra_login_url,headers,payload)
-                file_updates = file_updates + "failed to establish connection to Alletra : {0}\n".format(alletra_ip)
-                file_updates = file_updates + "failed to Session Key: " + str(get_sessions[1]) + " " + str(get_sessions[2])
-                file_updates = file_updates + "\n************************************************************************\n"
-                logger(file_updates)
-                sys.exit(1)
-        if flag:
-            with open(filepath, 'w+') as file_write:
                 get_session = get_sessions["key"]
                 message_bytes = get_session.encode('ascii')
                 base64_bytes = base64.b64encode(message_bytes)
                 base64_message = base64_bytes.decode('ascii')
-                file_write.write(base64_message)
-        else:
-            with open(filepath) as fileobj:
-                base64_message = fileobj.read()
+                keyValue["SessionKey"] = base64_message
+            else:
+                file_updates = file_updates + "Executed Within 15 Min, No New Session Key Required\n"
+                logger(file_updates)
+                base64_message = keyValue["SessionKey"]
                 base64_bytes = base64_message.encode('ascii')
                 message_bytes = base64.b64decode(base64_bytes)
                 get_session = message_bytes.decode('ascii')
+            
+            with open(filepath, "w") as outfile:
+                keyValue["ExecutionTime"] = str(curTime)
+                json.dump(keyValue, outfile)
+        else:
+            file_updates = file_updates + "Session File Doesn't Exists, New Session Key will be Required\n"
+            logger(file_updates)
+            with open(filepath, 'w') as file_write:
+                get_sessions = post(alletra_login_url, headers, payload)
+                if "failed" in get_sessions:
+                    file_updates = file_updates + "************************************************************************\n"
+                    file_updates = file_updates + "Session Not Found URL: {0}, Head: {1}, Body: {2}\n".format(alletra_login_url,headers,payload)
+                    file_updates = file_updates + "failed to establish connection to Alletra : {0}\n".format(alletra_ip)
+                    file_updates = file_updates + "failed to Session Key: " + str(get_sessions[1]) + " " + str(get_sessions[2])
+                    file_updates = file_updates + "\n************************************************************************\n"
+                    logger(file_updates)
+                    sys.exit(1)
+                get_session = get_sessions["key"]
+                message_bytes = get_session.encode('ascii')
+                base64_bytes = base64.b64encode(message_bytes)
+                base64_message = base64_bytes.decode('ascii')
+                epochTime = time.time()
+                sessionJ = '{"SessionKey":"'+base64_message+'", "ExecutionTime":"'+str(epochTime)+'"}'
+                file_write.write(sessionJ)
+                file_updates = file_updates + "Session Key and Execution Time Updated\n"
+                logger(file_updates)
+
         # Construct payload
         print(get_session)
         payload_Json = json.dumps(event_payload)
@@ -211,6 +231,11 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
         get_alarm = get(event_url, header_alarm)
         if "failed" in get_alarm:
             file_updates = file_updates + "failed to get Events: " + str(get_alarm[1]) + " " + str(get_alarm[2])
+            file_updates = file_updates + "\n************************************************************************\n"
+            logger(file_updates)
+            sys.exit(1)
+        elif "InValid Session Key" in get_alarm:
+            file_updates = file_updates + "failed to get Events using exising Session Key: " + str(get_alarm[1]) + " " + str(get_alarm[2])
             file_updates = file_updates + "\n************************************************************************\n"
             logger(file_updates)
             sys.exit(1)
