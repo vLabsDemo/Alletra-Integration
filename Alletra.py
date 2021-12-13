@@ -257,7 +257,7 @@ def getalarm(username, password, date_time, alletra_protocol, alletra_ip, Alletr
                     4:'3',
                     5:'4',
                 }
-                return switcher.get(psm_severity,'5')    
+                return switcher.get(psm_severity,'0')    
             for each_event in get_events:
                 desc = each_event['description']
                 #componenetData = each_event['component']
